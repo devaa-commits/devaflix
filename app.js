@@ -5,6 +5,7 @@
   const esc = (s = "") => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const PHONE = matchMedia("(max-width: 760px)");
   const FINE = matchMedia("(hover: hover) and (pointer: fine)");
+  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
   const ICON = {
     play: '<svg viewBox="0 0 24 24"><path d="M6 4l15 8-15 8z"/></svg>',
     info: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm1 6v8h-2v-8h2Zm0-4v2h-2V6h2Z"/></svg>',
@@ -220,6 +221,18 @@
     </section>`;
   };
 
+  // ---------- Breadcrumbs ----------
+  const crumbs = trail => `<nav class="crumbs" aria-label="Breadcrumb"><ol>${trail.map((c, i) => `<li>${c.go && i < trail.length - 1
+    ? `<button data-filter="${c.go}">${esc(c.label)}</button>`
+    : `<span${i === trail.length - 1 ? ' aria-current="page"' : ""}>${esc(c.label)}</span>`}</li>`).join("")}</ol></nav>`;
+  const viewLabel = id => {
+    const [kk, v] = id.split(":");
+    if (kk === "cat") return (D.categories.find(c => c.id === v) || { name: v }).name;
+    if (kk === "unit") return ((D.units.find(u => u.id === v) || { name: v }).name || v).split(" (")[0];
+    return id === "list" ? "My List" : "Home";
+  };
+  const trailFor = id => [{ label: "Home", go: "all" }, ...(id === "all" ? [] : [{ label: viewLabel(id), go: id }])];
+
   // ---------- Hero ----------
   let heroTimer, heroIdx = 0, heroPool = [];
   const renderHero = () => {
@@ -234,6 +247,7 @@
     $("#hero").innerHTML = `
       <div class="hero__art">${art(p, "art--hero", false)}</div>
       <div class="hero__content">
+        ${current.startsWith("unit:") ? crumbs(trailFor(current)) : ""}
         <div class="hero__kicker"><b>D</b> ${esc(cat(p).name)} · ${esc(p.unit || "GTM")}</div>
         <h1 class="hero__title">${esc(p.title)}</h1>
         ${rank >= 0 ? `<div class="hero__top10"><span class="badge10">TOP<br>10</span>#${rank + 1} in GTM Automation Today</div>` : ""}
@@ -250,7 +264,7 @@
   const startHero = pool => {
     heroPool = pool.slice(0, 5); heroIdx = 0; renderHero();
     clearInterval(heroTimer);
-    if (heroPool.length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches)
+    if (heroPool.length > 1 && !REDUCED.matches)
       heroTimer = setInterval(() => { if ($("#modal").hidden && !pvEl && !document.hidden) { heroIdx++; renderHero(); } }, 10000);
   };
 
@@ -296,7 +310,8 @@
       </div>`;
   };
 
-  const browsePage = (eyebrow, title, desc, items, rowsHtml) => `<section class="browse">
+  const browsePage = (eyebrow, title, desc, items, rowsHtml, trail = trailFor(current)) => `<section class="browse">
+      ${crumbs(trail)}
       <div class="browse__eyebrow">${esc(eyebrow)}</div>
       <h1 class="browse__title">${esc(title)}</h1>
       ${desc ? `<p class="browse__desc">${esc(desc)}</p>` : ""}
@@ -311,7 +326,7 @@
     if (q) {
       const hits = D.projects.filter(p => [p.title, p.logline, p.problem, p.how, p.unit, p.role, cat(p).name, ...(p.stack || [])].join(" ").toLowerCase().includes(q)).sort(byWeight);
       $("#hero").hidden = true; clearInterval(heroTimer);
-      $("#rows").innerHTML = browsePage("Search", `“${q}”`, `${hits.length} title${hits.length === 1 ? "" : "s"}`, hits)
+      $("#rows").innerHTML = browsePage("Search", `“${q}”`, `${hits.length} title${hits.length === 1 ? "" : "s"}`, hits, "", [{ label: "Home", go: "all" }, { label: "Search" }])
         .replace('<p class="empty">Nothing here yet. Hover a title and press “+” to save it to My List.</p>', `<p class="empty">No titles match. Try “routing”, “Claude” or “Apps Script”.</p>`);
       afterRender(); return;
     }
@@ -442,6 +457,7 @@
     $("#modalBody").innerHTML = `
       <div class="m-art">${art(p)}</div>
       <div class="m-body">
+        ${crumbs([{ label: "Home", go: "all" }, { label: cat(p).name, go: `cat:${p.category}` }, { label: p.title }])}
         <div class="m-actions">
           <button class="btn btn--play" data-jump="${eps.length ? "eps" : "story"}">${ICON.play}${eps.length ? "Play Episodes" : "Read the Story"}</button>
           <button class="cbtn" data-list="${p.id}" aria-label="${inList(p.id) ? "Remove from" : "Add to"} My List">${inList(p.id) ? "✓" : "+"}</button>
@@ -475,6 +491,7 @@
     const rows = D.projects.map(p => ({ p, c: calc(p) })).filter(r => r.c).sort((a, b) => b.c.hours - a.c.hours);
     const t = totals();
     $("#modalBody").innerHTML = `<div class="m-body ledger">
+      <div class="ledger__crumbs">${crumbs([{ label: "Home", go: "all" }, { label: "Impact Ledger" }])}</div>
       <h2 class="m-h m-h--first" id="mTitle" style="font-size:28px;margin-top:34px">Impact Ledger</h2>
       <p class="m-text">Each row is <code>volume × (manual − automated minutes)</code>, annualized and divided by ${IM.fteHours.toLocaleString()} hours per FTE-year.
       <b>Measured</b>: volume and time come from logs. <b>Modeled</b>: volume is measured and minutes are assumed. <b>Projected</b>: pilots, left out of the headline totals. Every input lives in <code>impact.js</code>.</p>
@@ -512,15 +529,15 @@
     const n = ++faceN;
     return svg.replace(/id="([^"]+)"/g, `id="$1-${n}"`).replace(/url\(#([^)]+)\)/g, `url(#$1-${n})`);
   };
-  const pickProfile = pid => {
+  let profileId = null;
+  const setProfile = pid => {
     const pr = D.profiles.find(p => p.id === pid) || D.profiles[0];
-    $("#gate").hidden = true; $("#app").hidden = false;
+    profileId = pr.id;
     $("#profileBtn").innerHTML = face(pr); $("#profileBtn").style.background = pr.color; $("#profileBtn").title = `Switch profile (${pr.villainName || pr.name})`;
     try { sessionStorage.setItem("devaflix:profile", pr.id); } catch {}
-    $("#search").value = ""; $(".search").classList.remove("has-value");
-    render(pr.view || "all");
-    window.scrollTo({ top: 0, behavior: "instant" });
+    return pr;
   };
+  const pickProfile = pid => { const pr = setProfile(pid); go({ view: pr.view || "all", profile: pr.id }); };
   $("#profiles").innerHTML = D.profiles.map(p => `
     <button class="profile" data-profile="${p.id}">
       <span class="profile__img" style="background:${p.color}">${face(p)}</span>
@@ -535,37 +552,111 @@
   // ---------- Events ----------
   document.addEventListener("click", e => {
     const t = e.target;
-    if (t.closest("#lightbox")) { $("#lightbox").hidden = true; return; }
+    if (t.closest("#lightbox")) return closeTop();
+    if (t.closest("#toTop")) return (!$("#modal").hidden ? $("#modal") : window).scrollTo({ top: 0, behavior: REDUCED.matches ? "instant" : "smooth" });
     if (t.closest("[data-menu]")) { const m = $("#menu"); m.hidden = !m.hidden; t.closest("[data-menu]").setAttribute("aria-expanded", String(!m.hidden)); return; }
     if (!t.closest("#menu")) closeMenu();
     const list = t.closest("[data-list]");
     if (list) { e.stopPropagation(); toggleList(list.dataset.list); if (current === "list" && $("#modal").hidden) render(); return; }
     const pf = t.closest("[data-profile]"); if (pf) return pickProfile(pf.dataset.profile);
-    const f = t.closest("[data-filter]"); if (f) { e.preventDefault(); closeMenu(); closeModal(); $("#search").value = ""; $(".search").classList.remove("has-value"); render(f.dataset.filter); window.scrollTo({ top: 0, behavior: "instant" }); return; }
+    const f = t.closest("[data-filter]"); if (f) { e.preventDefault(); closeMenu(); return goView(f.dataset.filter); }
     const sc = t.closest("[data-scroll]"); if (sc) { const tr = sc.parentElement.querySelector(".row__track"); tr.scrollBy({ left: +sc.dataset.scroll * tr.clientWidth * .85, behavior: "smooth" }); return; }
     const hd = t.closest("[data-hero]"); if (hd) { heroIdx = +hd.dataset.hero; renderHero(); return; }
-    const st = t.closest("[data-still]"); if (st) return openStill(st.dataset.still, st.dataset.cap);
-    if (t.closest("[data-ledger]")) return openLedger();
-    if (t.closest("[data-close]")) return closeModal();
+    const st = t.closest("[data-still]"); if (st) return go({ ...route, still: st.dataset.still, cap: st.dataset.cap });
+    if (t.closest("[data-ledger]")) return goModal("impact");
+    if (t.closest("[data-close]")) return closeTop();
     const jp = t.closest("[data-jump]"); if (jp) { const el = document.getElementById(jp.dataset.jump); el && el.scrollIntoView({ behavior: "smooth" }); return; }
-    const op = t.closest("[data-open]"); if (op) return openModal(op.dataset.open);
-    if (t.closest("#profileBtn")) { hidePreview(); closeModal(); $("#app").hidden = true; $("#gate").hidden = false; window.scrollTo({ top: 0, behavior: "instant" }); }
+    const op = t.closest("[data-open]"); if (op) return goModal(op.dataset.open);
+    if (t.closest("#profileBtn")) go({ gate: true });
   });
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
-    if (!$("#lightbox").hidden) $("#lightbox").hidden = true;
-    else if (!$("#modal").hidden) closeModal();
+    if (!$("#lightbox").hidden || !$("#modal").hidden) closeTop();
     else { closeMenu(); hidePreview(); }
   });
   $("#search").addEventListener("input", e => { $(".search").classList.toggle("has-value", !!e.target.value); render(); });
   addEventListener("scroll", () => $("#nav").classList.toggle("is-solid", scrollY > 40), { passive: true });
   PHONE.addEventListener("change", () => { if (!$("#app").hidden) render(); });
 
-  // Deep links: …#lead-routing-engine opens that title, …#impact opens the ledger
+  // ---------- History ----------
+  // Every page, title and still is a history entry, so Back (and swipe-back on phones) steps
+  // through the site: title → page → Home → profiles, instead of leaving it.
+  // URLs: #/cat:routing (page), #lead-routing-engine (title), #impact (ledger), #who (profiles).
+  history.scrollRestoration = "manual";
+  const VIEWS = ["all", "list", ...D.categories.map(c => `cat:${c.id}`), ...D.units.map(u => `unit:${u.id}`)];
+  const urlFor = s => s.gate ? "#who" : s.modal ? `#${s.modal}` : s.view && s.view !== "all" ? `#/${s.view}` : location.pathname + location.search;
+  const parse = hash => {
+    const h = decodeURIComponent(hash.slice(1));
+    if (h === "who") return { gate: true };
+    if (h.startsWith("/") && VIEWS.includes(h.slice(1))) return { view: h.slice(1) };
+    if (h === "impact" || D.projects.some(p => p.id === h)) return { view: "all", modal: h, depth: 1 };
+    return { view: "all" };
+  };
+  let route = {}, shown = {};
+  const apply = s => {
+    const prev = shown; shown = s;
+    if (s.gate) {
+      hidePreview(); closeMenu(); closeModal(); $("#lightbox").hidden = true;
+      $("#app").hidden = true; $("#gate").hidden = false;
+      window.scrollTo({ top: 0, behavior: "instant" }); syncTop(); return;
+    }
+    if (s.profile && s.profile !== profileId) setProfile(s.profile);
+    const entering = $("#app").hidden;
+    $("#gate").hidden = true; $("#app").hidden = false;
+    if (entering || s.view !== prev.view || s.fresh) {
+      $("#search").value = ""; $(".search").classList.remove("has-value");
+      render(s.view || "all");
+      window.scrollTo({ top: s.y || 0, behavior: "instant" });
+    }
+    if (!s.modal) closeModal();
+    else if (s.modal !== prev.modal || $("#modal").hidden) s.modal === "impact" ? openLedger() : openModal(s.modal);
+    if (s.still) openStill(s.still, s.cap); else $("#lightbox").hidden = true;
+    syncTop();
+  };
+  const go = (s, replace) => {
+    if (!replace && !route.gate && !route.modal) history.replaceState({ ...route, y: scrollY }, "", location.href); // come back to the same spot
+    route = s;
+    history[replace ? "replaceState" : "pushState"](s, "", urlFor(s));
+    apply(s);
+  };
+  const goView = view => {
+    const searching = !!$("#search").value;
+    if (view === route.view && route.modal) return closeTop();
+    if (view === route.view && !route.modal && !route.gate) {
+      if (searching) apply({ ...route, fresh: true });
+      return window.scrollTo({ top: 0, behavior: "instant" });
+    }
+    go({ view, profile: profileId });
+  };
+  const goModal = id => {
+    if (id === route.modal) return;
+    go({ view: route.view || current, profile: profileId, modal: id, depth: route.modal ? (route.depth || 1) + 1 : 1 });
+  };
+  // close drops the still, or every stacked title, in one step back to the page underneath
+  const closeTop = () => {
+    if (route.still) return history.back();
+    if (route.modal) return history.go(-(route.depth || 1));
+    closeModal(); $("#lightbox").hidden = true; syncTop();
+  };
+  addEventListener("popstate", e => { route = e.state || parse(location.hash); apply(route); });
+
+  // ---------- Back to top ----------
+  const syncTop = () => {
+    const inModal = !$("#modal").hidden, y = inModal ? $("#modal").scrollTop : scrollY;
+    $("#toTop").classList.toggle("is-on", y > innerHeight * 1.2 && $("#gate").hidden && $("#lightbox").hidden);
+  };
+  addEventListener("scroll", syncTop, { passive: true });
+  $("#modal").addEventListener("scroll", syncTop, { passive: true });
+
+  // ---------- Boot ----------
+  // A reload keeps its history entry. A fresh deep link gets Home underneath it, so Back lands on Home.
   let saved = null; try { saved = sessionStorage.getItem("devaflix:profile"); } catch {}
-  const deep = decodeURIComponent(location.hash.slice(1));
-  if (deep && (deep === "impact" || D.projects.some(p => p.id === deep))) {
-    pickProfile(saved || "all");
-    deep === "impact" ? openLedger() : openModal(deep);
-  } else if (saved) pickProfile(saved);
+  const deep = parse(location.hash);
+  if (history.state) { route = history.state; apply(route); }
+  else if (location.hash && !deep.gate) {
+    setProfile(saved || "all");
+    go({ view: "all", profile: profileId }, true);
+    if (deep.view !== "all" || deep.modal) go({ ...deep, profile: profileId });
+  } else if (saved && !deep.gate) { const pr = setProfile(saved); go({ view: pr.view || "all", profile: pr.id }, true); }
+  else go({ gate: true }, true);
 })();
