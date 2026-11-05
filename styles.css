@@ -95,16 +95,17 @@ a { color: inherit; }
 .art--hero::after { display: none; }
 
 /* ---------- Hero ---------- */
-.hero { position: relative; min-height: min(86vh, 800px); display: flex; align-items: flex-end; padding: 0 var(--gutter) clamp(150px, 22vh, 230px); overflow: hidden; }
+/* padding-top keeps the bottom-anchored content clear of the nav on short, wide windows */
+.hero { position: relative; min-height: min(86vh, 800px); display: flex; align-items: flex-end; padding: calc(104px + env(safe-area-inset-top, 0px)) var(--gutter) clamp(150px, 22vh, 230px); overflow: hidden; }
 .hero__art { position: absolute; inset: 0; z-index: 0; }
 .hero__art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg) 0%, rgba(20,20,20,.75) 12%, rgba(20,20,20,0) 38%), linear-gradient(77deg, rgba(0,0,0,.86) 0%, rgba(0,0,0,.4) 46%, transparent 78%); }
 .hero__content { position: relative; z-index: 1; max-width: 620px; animation: rise .6s var(--ease); }
 .hero__kicker { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 3px; color: #ddd; text-transform: uppercase; font-weight: 600; }
 .hero__kicker b { font-family: var(--display); color: var(--red); font-size: 26px; letter-spacing: 0; }
-.hero__title { font-family: var(--display); font-weight: 400; font-size: clamp(52px, 7.6vw, 104px); line-height: .9; margin: 10px 0 16px; letter-spacing: 1px; }
+.hero__title { font-family: var(--display); font-weight: 400; font-size: clamp(44px, min(7.6vw, 11.5vh), 104px); line-height: .9; margin: 10px 0 16px; letter-spacing: 1px; }
 .hero__top10 { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: clamp(16px, 1.5vw, 21px); margin-bottom: 12px; }
 .badge10 { background: var(--red); font-family: var(--display); font-size: 13px; line-height: 1; padding: 5px 4px 3px; border-radius: 2px; text-align: center; letter-spacing: .5px; }
-.hero__desc { font-size: clamp(15px, 1.3vw, 19px); line-height: 1.45; text-shadow: 0 1px 4px rgba(0,0,0,.6); margin: 0 0 16px; }
+.hero__desc { font-size: clamp(15px, min(1.3vw, 2.4vh), 19px); line-height: 1.45; text-shadow: 0 1px 4px rgba(0,0,0,.6); margin: 0 0 16px; }
 .hero__stats { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 0 0 22px; font-size: 13px; color: #cfcfcf; }
 .hero__stats b { font-family: var(--display); font-weight: 400; font-size: 28px; color: #fff; margin-right: 5px; letter-spacing: .5px; }
 .hero__stats .is-hot b { color: var(--green); }
