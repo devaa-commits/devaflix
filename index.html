@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DEVAFLIX</title>
+  <meta name="description" content="Deva Anandhan — GTM Engineer. AI agents, lead routing, data hygiene and RevOps automation, presented Netflix-style." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23141414%27/%3E%3Ctext x=%2716%27 y=%2726%27 font-family=%27Impact,sans-serif%27 font-size=%2726%27 fill=%27%23e50914%27 text-anchor=%27middle%27%3ED%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Profile gate -->
+  <section id="gate" class="gate" aria-label="Choose a profile">
+    <div class="brand brand--lg">DEVAFLIX</div>
+    <h1 class="gate__title">Who's watching?</h1>
+    <div id="profiles" class="profiles"></div>
+    <button class="gate__skip" data-profile="all">Skip intro →</button>
+  </section>
+
+  <!-- App -->
+  <div id="app" class="app" hidden>
+    <header id="nav" class="nav">
+      <div class="nav__left">
+        <a class="brand" href="#" data-filter="all">DEVAFLIX</a>
+        <nav class="nav__links" id="navLinks"></nav>
+      </div>
+      <div class="nav__right">
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.42 1.42-4.24-4.24A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>
+          <input id="search" type="search" placeholder="Titles, tools, systems" aria-label="Search projects" />
+        </label>
+        <button id="profileBtn" class="avatar" aria-label="Switch profile"></button>
+      </div>
+    </header>
+
+    <section id="hero" class="hero" aria-live="polite"></section>
+    <main id="rows" class="rows"></main>
+
+    <footer class="footer">
+      <div id="footerAbout"></div>
+      <p class="footer__fine">Built by hand. No real streaming involved. Client names are withheld; figures marked modeled or projected are estimates.</p>
+    </footer>
+  </div>
+
+  <!-- Detail modal -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <article class="modal__card" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <button class="modal__close" data-close aria-label="Close">✕</button>
+      <div id="modalBody"></div>
+    </article>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden></div>
+
+  <script src="projects.js"></script>
+  <script src="impact.js"></script>
+  <script src="avatars.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
