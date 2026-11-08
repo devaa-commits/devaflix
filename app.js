@@ -632,8 +632,7 @@
   const o = D.owner;
   // CC BY / BY-SA photos need the photographer, licence and source named
   const credited = D.profiles.filter(p => p.credit);
-  $("#credits").innerHTML = credited.length ? `Profile photos are cosplay photographs from Wikimedia Commons, cropped: ${credited.map(p =>
-    `<a href="${esc(p.credit.url)}" target="_blank" rel="noopener">${esc(p.villainName)}</a> by ${esc(p.credit.by)} (${esc(p.credit.license)})`).join(", ")}.` : "";
+  $("#credits").innerHTML = `Profile art belongs to its respective creators and studios, used here as fan tribute${credited.length ? ` (${credited.map(p => `${esc(p.villainName)} art by ${esc(p.credit)}`).join(", ")})` : ""}.`;
   $("#footerAbout").innerHTML = `<h3>${esc(o.name)} · ${esc(o.title)}</h3><p>${esc(o.about)}</p>
     <div class="footer__links">${(o.links || []).map(l => `<a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join("")}</div>`;
 
