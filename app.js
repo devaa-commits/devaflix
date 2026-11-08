@@ -167,7 +167,7 @@
   const portrait = () => PHONE.matches;
   const card = (p, opts = {}) => {
     const tall = opts.portrait ?? portrait();
-    return `<button class="card${tall ? " card--portrait" : ""}" data-open="${p.id}" data-card="${p.id}" aria-label="${esc(p.title)}">
+    return `<button class="card${tall ? " card--portrait" : ""}" data-open="${p.id}" data-card="${p.id}" aria-label="${esc(p.title)}"${opts.i != null ? ` style="--i:${opts.i}"` : ""}>
       <div class="card__art">${art(p, tall ? "art--portrait" : "")}</div></button>`;
   };
   const topCard = (p, i) => `<button class="card card--top" data-open="${p.id}" data-card="${p.id}" aria-label="Number ${i + 1}: ${esc(p.title)}">
@@ -265,7 +265,7 @@
     heroPool = pool.slice(0, 5); heroIdx = 0; renderHero();
     clearInterval(heroTimer);
     if (heroPool.length > 1 && !REDUCED.matches)
-      heroTimer = setInterval(() => { if ($("#modal").hidden && !pvEl && !document.hidden) { heroIdx++; renderHero(); } }, 10000);
+      heroTimer = setInterval(() => { if ($("#modal").hidden && !pvEl && !document.hidden && !$("#hero").matches(":hover, :focus-within")) { heroIdx++; renderHero(); } }, 10000);
   };
 
   // ---------- Views ----------
@@ -312,10 +312,9 @@
 
   const browsePage = (eyebrow, title, desc, items, rowsHtml, trail = trailFor(current)) => `<section class="browse">
       ${crumbs(trail)}
-      <div class="browse__eyebrow">${esc(eyebrow)}</div>
       <h1 class="browse__title">${esc(title)}</h1>
       ${desc ? `<p class="browse__desc">${esc(desc)}</p>` : ""}
-      ${rowsHtml || (items.length ? `<div class="grid">${items.map(p => card(p)).join("")}</div>` : `<p class="empty">Nothing here yet. Hover a title and press “+” to save it to My List.</p>`)}
+      ${rowsHtml || (items.length ? `<div class="grid">${items.map((p, i) => card(p, { i })).join("")}</div>` : `<p class="empty">Nothing here yet. Hover a title and press “+” to save it to My List.</p>`)}
     </section>`;
 
   const render = (id = current) => {
