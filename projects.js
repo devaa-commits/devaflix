@@ -27,11 +27,11 @@ window.PORTFOLIO = {
   ],
 
   profiles: [
-    { id: "all", villain: "madara", villainName: "Madara", name: "Everything", sub: "Full catalog", initial: "D", color: "linear-gradient(135deg,#e50914,#831010)", view: "all" },
-    { id: "vmf", villain: "eren", villainName: "Eren", name: "Vendasta", sub: "Vendasta channel", initial: "V", color: "linear-gradient(135deg,#0077b6,#03045e)", view: "unit:Vendasta" },
-    { id: "prbs", villain: "blackbeard", villainName: "Blackbeard", name: "Broadly", sub: "Broadly direct", initial: "B", color: "linear-gradient(135deg,#f48c06,#9d0208)", view: "unit:Broadly" },
-    { id: "ai", villain: "ultron", villainName: "Ultron", name: "AI Lab", sub: "Agents & LLMs", initial: "AI", color: "linear-gradient(135deg,#f72585,#3a0ca3)", view: "cat:ai" },
-    { id: "kids", villain: "loki", villainName: "Loki", name: "Data Nerds", sub: "Hygiene & CRM", initial: "Δ", color: "linear-gradient(135deg,#52b788,#081c15)", view: "cat:hygiene" }
+    { id: "all", villain: "madara", img: "assets/profiles/madara.jpg", credit: { by: "JoeInQueens", license: "CC BY 2.0", url: "https://commons.wikimedia.org/wiki/File:NYCC_2011_-_Madara_Uchiha_(6272588773).jpg" }, villainName: "Madara", name: "Everything", sub: "Full catalog", initial: "D", color: "linear-gradient(135deg,#e50914,#831010)", view: "all" },
+    { id: "vmf", villain: "eren", img: "assets/profiles/eren.jpg", credit: { by: "GabboT", license: "CC BY-SA 2.0", url: "https://commons.wikimedia.org/wiki/File:Cosplay_of_Eren_Yeager.jpg" }, villainName: "Eren", name: "Vendasta", sub: "Vendasta channel", initial: "V", color: "linear-gradient(135deg,#0077b6,#03045e)", view: "unit:Vendasta" },
+    { id: "prbs", villain: "blackbeard", img: "assets/profiles/blackbeard.jpg", credit: { by: "stupid systemus", license: "CC BY 2.0", url: "https://commons.wikimedia.org/wiki/File:Otakon_2013_-_Blackbeard_Cosplayer.jpg" }, villainName: "Blackbeard", name: "Broadly", sub: "Broadly direct", initial: "B", color: "linear-gradient(135deg,#f48c06,#9d0208)", view: "unit:Broadly" },
+    { id: "ai", villain: "ultron", img: "assets/profiles/ultron.jpg", credit: { by: "Pat Loika", license: "CC BY 2.0", url: "https://commons.wikimedia.org/wiki/File:Cosplay_Ultron_Dragon_Con_2013.jpg" }, villainName: "Ultron", name: "AI Lab", sub: "Agents & LLMs", initial: "AI", color: "linear-gradient(135deg,#f72585,#3a0ca3)", view: "cat:ai" },
+    { id: "kids", villain: "loki", img: "assets/profiles/loki.jpg", credit: { by: "William Tung", license: "CC BY-SA 2.0", url: "https://commons.wikimedia.org/wiki/File:WonderCon_2015_-_Loki_cosplay_-_without_background.jpg" }, villainName: "Loki", name: "Data Nerds", sub: "Hygiene & CRM", initial: "Δ", color: "linear-gradient(135deg,#52b788,#081c15)", view: "cat:hygiene" }
   ],
 
   // Extra themed rows on the Home view (unit rows only show on Home)
