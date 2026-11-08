@@ -138,15 +138,19 @@ p { text-wrap: pretty; }
 /* ---------- Cards ---------- */
 .card { position: relative; flex: none; width: var(--card-w); scroll-snap-align: start; border-radius: var(--radius); text-align: left; }
 .card__art { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; background: #222; transition: filter .2s ease, transform .16s var(--ease); }
-.card.is-previewing .card__art { filter: brightness(.7); }
+.card.is-previewing .card__art { visibility: hidden; }
 .card--portrait .card__art { aspect-ratio: 2 / 3; }
 .card--top { width: calc(var(--card-w) * 1.02); display: flex; align-items: flex-end; }
 .card--top .card__art { flex: 1; aspect-ratio: 2 / 3; }
 .topnum { flex: none; width: 46%; margin-right: -7%; font-family: var(--display); font-size: calc(var(--card-w) * .66); line-height: .74; text-align: right; color: var(--bg); -webkit-text-stroke: 3px #5b5b5b; letter-spacing: -6px; user-select: none; }
 
 /* ---------- Hover preview (floating) ---------- */
-.pv { position: absolute; z-index: 60; background: var(--bg-2); border-radius: 8px; overflow: hidden; box-shadow: 0 22px 50px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.04); opacity: 0; transform: scale(.92); transition: opacity .14s ease, transform .14s ease; cursor: pointer; }
-.pv.is-in { opacity: 1; transform: none; transition: opacity .2s var(--ease), transform .24s var(--ease); }
+.pv { position: absolute; z-index: 60; background: var(--bg-2); border-radius: 8px; overflow: hidden; box-shadow: 0 22px 50px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.04); transform: scale(var(--s0, .66)); transition: transform .22s cubic-bezier(.4, 0, .2, 1), box-shadow .22s ease; cursor: pointer; will-change: transform; }
+.pv.is-in { transform: none; transition: transform .32s cubic-bezier(.2, .8, .2, 1), box-shadow .32s ease; }
+.pv:not(.is-in) { box-shadow: none; }
+.pv.is-out { pointer-events: none; }
+.pv__body { opacity: 0; transition: opacity .12s ease; }
+.pv.is-in .pv__body { opacity: 1; transition: opacity .2s ease .14s; }
 .pv__art { position: relative; aspect-ratio: 16 / 9; }
 .pv__body { padding: 14px 16px 16px; }
 .pv__btns { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -533,3 +537,26 @@ details.how ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 .footer__credits { font-size: 12px; }
 .footer__credits a { color: var(--muted); }
 @media (max-width: 760px) { .gate__sound { top: 14px; right: 16px; min-height: 40px; padding: 0 12px; } }
+
+/* =========================================================
+   Netflix motion vocabulary
+   ========================================================= */
+/* billboard: the logline folds away and the title settles smaller, leaving the art to breathe */
+.hero__fold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .8s cubic-bezier(.65, 0, .35, 1), opacity .5s ease; }
+.hero__fold > div { overflow: hidden; min-height: 0; }
+.hero__title { transform-origin: 0 100%; transition: transform .8s cubic-bezier(.65, 0, .35, 1); }
+@media (min-width: 761px) {
+  .hero.is-settled .hero__fold { grid-template-rows: 0fr; opacity: 0; }
+  .hero.is-settled .hero__title { transform: scale(.74); }
+}
+/* one slower sheen per slide */
+.hero__sheen.is-on::before { animation-duration: 2.2s; }
+
+/* row page dashes, top right, shown while the row is hovered */
+.row__head { position: relative; }
+.row__pages { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity .2s ease; }
+.row__pages i { width: 12px; height: 2px; background: #4d4d4d; }
+.row__pages i.is-on { background: #aaa; }
+@media (hover: hover) and (pointer: fine) { .row:hover .row__pages { opacity: 1; } }
+.hero__kicker { transition: opacity .5s ease; }
+@media (min-width: 761px) { .hero.is-settled .hero__kicker { opacity: 0; } }

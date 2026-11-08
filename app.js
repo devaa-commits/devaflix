@@ -180,7 +180,7 @@
       ? `<button data-filter="${opts.explore}">${esc(title)}<span class="row__explore">Explore all ›</span></button>`
       : esc(title);
     return `<section class="row" aria-label="${esc(title)}">
-      <div class="row__head"><h2 class="row__title">${head}</h2>${opts.sub ? `<span class="row__sub">${esc(opts.sub)}</span>` : ""}</div>
+      <div class="row__head"><h2 class="row__title">${head}</h2>${opts.sub ? `<span class="row__sub">${esc(opts.sub)}</span>` : ""}<div class="row__pages" aria-hidden="true"></div></div>
       <div class="row__wrap">
         <button class="row__arrow row__arrow--l is-off" data-scroll="-1" aria-label="Scroll ${esc(title)} left">‹</button>
         <div class="row__track">${items.map((p, i) => (opts.top ? topCard(p, i) : card(p))).join("")}</div>
@@ -192,6 +192,10 @@
     const max = tr.scrollWidth - tr.clientWidth - 2;
     wrap.querySelector(".row__arrow--l").classList.toggle("is-off", tr.scrollLeft <= 2);
     wrap.querySelector(".row__arrow--r").classList.toggle("is-off", tr.scrollLeft >= max);
+    const dots = wrap.parentElement.querySelector(".row__pages"); if (!dots) return;
+    const pages = Math.max(1, Math.ceil((tr.scrollWidth - 1) / tr.clientWidth)), at = max > 0 ? Math.round(tr.scrollLeft / max * (pages - 1)) : 0;
+    if (dots.childElementCount !== (pages > 1 ? pages : 0)) dots.innerHTML = pages > 1 ? "<i></i>".repeat(pages) : "";
+    [...dots.children].forEach((d, i) => d.classList.toggle("is-on", i === at));
   };
 
   // ---------- Totals ----------
@@ -251,7 +255,7 @@
   };
 
   // ---------- Hero ----------
-  let heroTimer, heroIdx = 0, heroPool = [];
+  let heroTimer, settleTimer, heroIdx = 0, heroPool = [];
   const renderHero = () => {
     const p = heroPool[heroIdx % heroPool.length];
     if (!p) { $("#hero").innerHTML = ""; return; }
@@ -262,6 +266,8 @@
     if (c && c.eff) stats.push(`<span><b>${Math.round(c.eff * 100)}%</b>less effort</span>`);
     if (x.ai) stats.push(`<span><b>${x.ai}</b>AI ${x.ai > 1 ? "employees" : "employee"}</span>`);
     const oldArt = $("#hero .hero__art");
+    clearTimeout(settleTimer); $("#hero").classList.remove("is-settled");
+    if (!REDUCED.matches) settleTimer = setTimeout(() => $("#hero").classList.add("is-settled"), 5200);
     $("#hero").innerHTML = `
       <div class="hero__art is-entering">${art(p, "art--hero", false, true)}</div>
       <div class="hero__sheen"></div>
@@ -269,9 +275,11 @@
         ${current.startsWith("unit:") ? crumbs(trailFor(current)) : ""}
         <div class="hero__kicker"><b>D</b> ${esc(cat(p).name)} · ${esc(p.unit || "GTM")}</div>
         <h1 class="hero__title">${esc(p.title)}</h1>
+        <div class="hero__fold"><div>
         ${rank >= 0 ? `<div class="hero__top10"><span class="badge10">TOP<br>10</span>#${rank + 1} in GTM Automation Today</div>` : ""}
         <p class="hero__desc">${esc(p.logline)}</p>
         ${stats.length ? `<div class="hero__stats">${stats.join("")}</div>` : ""}
+        </div></div>
         <div class="hero__actions">
           <button class="btn btn--play" data-open="${p.id}">${ICON.play}Play</button>
           <button class="btn btn--info" data-open="${p.id}">${ICON.info}More Info</button>
@@ -389,7 +397,7 @@
   const hidePreview = () => {
     clearTimeout(pvTimer);
     if (pvCard) pvCard.classList.remove("is-previewing");
-    if (pvEl) { const el = pvEl; el.classList.remove("is-in"); setTimeout(() => el.remove(), 220); }
+    if (pvEl) { const el = pvEl; el.classList.remove("is-in"); el.classList.add("is-out"); setTimeout(() => el.remove(), 200); }
     pvEl = pvCard = null;
   };
   const tagsFor = p => {
@@ -407,12 +415,13 @@
     const artH = w * 9 / 16;
     let left = box.left + box.width / 2 - w / 2;
     left = Math.max(16, Math.min(left, innerWidth - w - 16 - 8));
-    let top = box.top + box.height / 2 - artH / 2 - 10;
+    let top = box.top + box.height / 2 - artH / 2;
     top = Math.max(76, top);
     const gain = gainText(p);
     const el = document.createElement("div");
     el.className = "pv"; el.dataset.open = p.id; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", p.title);
-    el.style.cssText = `left:${left + scrollX}px;top:${top + scrollY}px;width:${w}px;transform-origin:${box.left + box.width / 2 - left}px ${box.top + box.height / 2 - top}px`;
+    // starts at exactly the poster's size and position, so it reads as the poster growing
+    el.style.cssText = `left:${left + scrollX}px;top:${top + scrollY}px;width:${w}px;--s0:${(box.width / w).toFixed(4)};transform-origin:${box.left + box.width / 2 - left}px ${box.top + box.height / 2 - top}px`;
     el.innerHTML = `<div class="pv__art">${art(p, "", true, true)}</div>
       <div class="pv__body">
         <div class="pv__btns">
@@ -427,7 +436,6 @@
     el.addEventListener("mouseleave", e => { if (!(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(`[data-card="${p.id}"]`))) hidePreview(); });
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add("is-in"));
-    animateScene(el.querySelector(".art__scene"), 120);
     cardEl.classList.add("is-previewing");
     pvEl = el; pvCard = cardEl;
   };
@@ -641,7 +649,7 @@
     if (t.closest("#soundBtn")) { window.DevaIntro && window.DevaIntro.setSound(!window.DevaIntro.soundOn()); return syncSound(); }
     const pf = t.closest("[data-profile]"); if (pf) return pickProfile(pf.dataset.profile, !pf.classList.contains("gate__skip"));
     const f = t.closest("[data-filter]"); if (f) { e.preventDefault(); closeMenu(); return goView(f.dataset.filter); }
-    const sc = t.closest("[data-scroll]"); if (sc) { const tr = sc.parentElement.querySelector(".row__track"); tr.scrollBy({ left: +sc.dataset.scroll * tr.clientWidth * .85, behavior: "smooth" }); return; }
+    const sc = t.closest("[data-scroll]"); if (sc) { const tr = sc.parentElement.querySelector(".row__track"); const cw = tr.querySelector(".card").getBoundingClientRect().width + parseFloat(getComputedStyle(tr).columnGap || 8), per = Math.max(1, Math.floor((tr.clientWidth - 2 * parseFloat(getComputedStyle(tr).paddingLeft)) / cw)); tr.scrollBy({ left: +sc.dataset.scroll * per * cw, behavior: "smooth" }); return; }
     const hd = t.closest("[data-hero]"); if (hd) { heroIdx = +hd.dataset.hero; renderHero(); return; }
     const st = t.closest("[data-still]"); if (st) return go({ ...route, still: st.dataset.still, cap: st.dataset.cap });
     if (t.closest("[data-ledger]")) return goModal("impact");
