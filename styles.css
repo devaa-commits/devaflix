@@ -465,18 +465,20 @@ details.how ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 .intro { position: fixed; inset: 0; z-index: 300; background: #000; display: grid; place-items: center; overflow: hidden; cursor: pointer; }
 .intro.is-out { animation: intro-out .6s ease-out forwards; }
 .intro__stage { position: relative; display: grid; place-items: center; }
-.intro__d { position: relative; font-family: var(--display); font-size: min(46vh, 60vw); line-height: .8; color: var(--red); transform: scale(.82); opacity: 0;
-  text-shadow: 0 0 0 rgba(229,9,20,0); }
+.intro__d { position: relative; font-family: var(--display); font-size: min(46vh, 60vw); line-height: .8; color: var(--red); transform: scale(.82); opacity: 0; will-change: transform, opacity; }
+.intro__stage::before { content: ""; position: absolute; width: min(70vh, 90vw); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, rgba(229,9,20,.55), rgba(229,9,20,.18) 45%, transparent 72%); opacity: 0; transform: scale(.6); will-change: transform, opacity; }
+.intro.is-on .intro__stage::before { animation: intro-glow 2.2s cubic-bezier(.5, 0, .2, 1) forwards; }
+@keyframes intro-glow { 0% { opacity: 0; transform: scale(.6); } 40% { opacity: 1; transform: scale(1); } 60% { opacity: .9; transform: scale(1.1); } 100% { opacity: 0; transform: scale(4); } }
 .intro.is-on .intro__d { animation: intro-d 2.2s cubic-bezier(.5, 0, .2, 1) forwards; }
 .intro__beams { position: absolute; left: 50%; top: 50%; width: 0; height: min(60vh, 80vw); transform: translate(-50%, -50%); }
-.intro__beams i { position: absolute; left: var(--x); top: 0; width: var(--w); height: 100%; background: linear-gradient(180deg, transparent, var(--c) 18%, var(--c) 82%, transparent); box-shadow: 0 0 12px var(--c); opacity: 0; transform: scaleY(0); transform-origin: 50% 50%; }
+.intro__beams i { will-change: transform, opacity; position: absolute; left: var(--x); top: 0; width: var(--w); height: 100%; background: linear-gradient(180deg, transparent, var(--c) 18%, var(--c) 82%, transparent); box-shadow: 0 0 12px var(--c); opacity: 0; transform: scaleY(0); transform-origin: 50% 50%; }
 .intro.is-on .intro__beams i { animation: intro-beam 1.3s cubic-bezier(.23, 1, .32, 1) forwards; animation-delay: calc(.7s + var(--d)); }
 @keyframes intro-d {
-  0% { opacity: 0; transform: scale(.82); text-shadow: 0 0 0 rgba(229,9,20,0); }
+  0% { opacity: 0; transform: scale(.82); }
   14% { opacity: 1; }
-  42% { transform: scale(1); text-shadow: 0 0 60px rgba(229,9,20,.55), 0 0 140px rgba(229,9,20,.25); }
+  42% { transform: scale(1); }
   58% { transform: scale(1.06); opacity: 1; }
-  100% { transform: scale(9) translateX(6%); opacity: 0; text-shadow: 0 0 80px rgba(229,9,20,.9); }
+  100% { transform: scale(9) translateX(6%); opacity: 0; }
 }
 @keyframes intro-beam {
   0% { opacity: 0; transform: scaleY(0) translateX(0); }
@@ -494,7 +496,7 @@ details.how ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 .hero__art { transition: opacity .7s ease; }
 .hero__art.is-leaving { opacity: 0; z-index: 0; }
 .hero__art.is-entering { opacity: 0; }
-.hero .art--hero .art__scene { animation: drift 11s ease-out both; }
+.hero .art--hero .art__scene { animation: drift 11s ease-out both; will-change: transform; }
 @keyframes drift { from { transform: scale(1.1) translate(2%, 1%); } }
 .hero__sheen { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .hero__sheen::before { content: ""; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 45%; transform: skewX(-18deg) translateX(0); opacity: 0;

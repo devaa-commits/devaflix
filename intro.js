@@ -7,16 +7,33 @@ window.DevaIntro = (() => {
   const soundOn = () => { try { return localStorage.getItem("devaflix:sound") !== "off"; } catch { return true; } };
   const setSound = on => { try { localStorage.setItem("devaflix:sound", on ? "on" : "off"); } catch {} };
 
+  const RATE = 44100;
+  let tailCache = null;
+  const roomTail = () => tailCache || (tailCache = [0, 1].map(() => {
+    const len = RATE * 1.8, d = new Float32Array(len);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+    return d;
+  }));
+  // Opening the audio device costs ~200ms on macOS, so do it (suspended) while the profile screen is idle;
+  // the click then only resumes it. One context is reused for every play.
+  let ctx = null;
+  const audio = () => {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!ctx && AC) { try { ctx = new AC({ sampleRate: RATE }); } catch { ctx = null; } }
+    return ctx;
+  };
+  (window.requestIdleCallback || (f => setTimeout(f, 300)))(() => { roomTail(); if (soundOn()) audio(); });
+
   // Two low impacts (a short pickup, then a long boom) over a rising shimmer chord.
   const sting = () => {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const C = new AC(), t0 = C.currentTime + 0.05;
+    const C = audio(); if (!C) return;
+    if (C.state === "suspended") C.resume();
+    const t0 = C.currentTime + 0.05;
     const out = C.createGain(); out.gain.value = 0.8;
     const comp = C.createDynamicsCompressor(); out.connect(comp); comp.connect(C.destination);
-    // small generated room so the hits bloom instead of clicking
-    const rev = C.createConvolver(), len = C.sampleRate * 2.4, ir = C.createBuffer(2, len, C.sampleRate);
-    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    // small generated room so the hits bloom instead of clicking (tail precomputed off the click)
+    const tail = roomTail(), rev = C.createConvolver(), ir = C.createBuffer(2, tail[0].length, RATE);
+    ir.copyToChannel(tail[0], 0); ir.copyToChannel(tail[1], 1);
     rev.buffer = ir; const wet = C.createGain(); wet.gain.value = 0.32; out.connect(rev); rev.connect(wet); wet.connect(comp);
 
     const env = (g, t, peak, dur) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); };
@@ -41,30 +58,41 @@ window.DevaIntro = (() => {
       g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(0.035, s + 1.1); g.gain.exponentialRampToValueAtTime(0.0001, s + 2.6);
       o.connect(lp); lp.connect(g); g.connect(out); o.start(s); o.stop(s + 2.7);
     });
-    setTimeout(() => C.close(), 4200);
+    setTimeout(() => out.disconnect(), 4200);
   };
 
   let running = null;
-  const play = ({ sound = soundOn(), onDone } = {}) => {
-    if (sound) { try { sting(); } catch {} }
-    if (reduced()) { onDone && onDone(); return; }
+  // prepare() does the heavy work (building the page) behind a black screen, before anything moves
+  const play = ({ sound = soundOn(), prepare, onDone } = {}) => {
+    if (reduced()) { prepare && prepare(); if (sound) { try { sting(); } catch {} } onDone && onDone(); return; }
     const el = document.getElementById("intro");
     const beams = el.querySelector(".intro__beams");
     beams.innerHTML = Array.from({ length: 34 }, (_, i) => {
       const c = RIBBONS[(i * 7) % RIBBONS.length], w = 2 + ((i * 13) % 7);
       return `<i style="--c:${c};--w:${w}px;--x:${(i - 17) * 9}px;--d:${(i % 11) * 22}ms"></i>`;
     }).join("");
-    el.hidden = false; el.classList.remove("is-out");
-    void el.offsetWidth;
-    el.classList.add("is-on");
+    el.hidden = false; el.classList.remove("is-out", "is-on");
+    const raf = f => requestAnimationFrame(() => requestAnimationFrame(f));
+    let prepared = false;
+    raf(() => {
+      if (!prepared) { prepare && prepare(); prepared = true; }
+      if (!running) return; // skipped during the black frame: page is ready, just lift the screen
+      raf(() => {
+        if (!running) return;
+        if (sound) { try { sting(); } catch {} }
+        el.classList.add("is-on");
+        running.t1 = setTimeout(finish, 1750);
+      });
+    });
     const finish = () => {
       if (!running) return;
+      if (!prepared) { prepare && prepare(); prepared = true; }
       clearTimeout(running.t1); running = null;
       el.classList.add("is-out");
       onDone && onDone();
       setTimeout(() => { el.hidden = true; el.classList.remove("is-on", "is-out"); }, 650);
     };
-    running = { t1: setTimeout(finish, 1750) };
+    running = { t1: 0 };
     el.onclick = finish;
     addEventListener("keydown", finish, { once: true });
   };

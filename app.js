@@ -51,7 +51,8 @@
   const person = (x, y, s = 1, c = "#fff") => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="0" cy="-9" r="6" fill="${c}"/><path d="M-10 9c0-7 4-11 10-11s10 4 10 11z" fill="${c}"/></g>`;
   const robot = (x, y, s = 1, label = "") => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0-22v-6" ${S}/><circle cx="0" cy="-30" r="3" fill="${A}"/><rect x="-16" y="-22" width="32" height="26" rx="7" ${F}/><circle cx="-6" cy="-10" r="3" fill="#fff"/><circle cx="6" cy="-10" r="3" fill="#fff"/><path d="M-6-2h12" ${S}/>${label ? `<text x="0" y="22" font-size="11" font-family="Bebas Neue,Impact" fill="#fff" text-anchor="middle" letter-spacing="1">${label}</text>` : ""}</g>`;
   const star = (x, y, r = 10, fill = A) => { let d = ""; for (let i = 0; i < 10; i++) { const a = Math.PI / 5 * i - Math.PI / 2, rr = i % 2 ? r * .45 : r; d += (i ? "L" : "M") + (x + rr * Math.cos(a)).toFixed(1) + " " + (y + rr * Math.sin(a)).toFixed(1); } return `<path d="${d}Z" fill="${fill}"/>`; };
-  const flow = (d, dur = 2.4, delay = 0, c = A) => `<circle r="3.5" fill="${c}"><animateMotion dur="${dur}s" begin="${delay}s" repeatCount="indefinite" path="${d}"/></circle>`;
+  let LIVE = false; // set while building hero / preview / title art
+  const flow = (d, dur = 2.4, delay = 0, c = A) => !LIVE ? "" : `<circle r="3.5" fill="${c}"><animateMotion dur="${dur}s" begin="${delay}s" repeatCount="indefinite" path="${d}"/></circle>`;
   const GLYPH = {
     tiers: `<path d="M-8 6h4V0h-4zM-2 6h4v-9h-4zM4 6h4v-14h-4z" fill="#fff"/>`,
     search: `<circle cx="-2" cy="-2" r="6" ${S}/><path d="m3 3 5 5" ${S}/>`,
@@ -131,14 +132,15 @@
   const statusOf = p => (p.status || "").toLowerCase();
 
   const sceneSvg = p => { const x = X(p); const fn = SCENES[x.scene] || SCENES.blueprint; return `<svg class="art__scene" viewBox="150 10 170 165" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${fn(x.glyph)}</svg>`; };
-  const art = (p, extra = "", withTitle = true) => {
+  const art = (p, extra = "", withTitle = true, live = false) => {
     const h = hash(p.id);
+    LIVE = live; const scene = sceneSvg(p); LIVE = false;
     const ribbon = statusOf(p) === "in progress" ? '<span class="art__ribbon">New Episodes</span>'
       : statusOf(p) === "prototype" ? '<span class="art__ribbon art__ribbon--live">Pilot</span>'
       : p.category === "workforce" ? '<span class="art__ribbon art__ribbon--ai">AI Employee</span>' : "";
     const prog = statusOf(p) === "in progress" ? `<div class="progress"><i style="width:${p.progress || 55}%"></i></div>` : "";
     return `<div class="art ${extra}" style="--g:${LOOKS[cat(p).look] || LOOKS.tooling};--h:${(h % 30) - 15}deg">
-      <span class="art__d">D</span>${ribbon}${sceneSvg(p)}
+      <span class="art__d">D</span>${ribbon}${scene}
       ${withTitle ? `<div class="art__title">${esc(p.title)}</div>` : ""}${prog}
     </div>`;
   };
@@ -233,6 +235,21 @@
   };
   const trailFor = id => [{ label: "Home", go: "all" }, ...(id === "all" ? [] : [{ label: viewLabel(id), go: id }])];
 
+  // ---------- Living scenes ----------
+  const animateScene = (svg, delay = 0) => {
+    if (!svg || REDUCED.matches) return;
+    [...svg.children].forEach((el, i) => {
+      if (el.tagName === "circle" && el.querySelector("animateMotion")) return;
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: delay + 80 + Math.min(i, 16) * 45, easing: "ease-out", fill: "backwards" });
+    });
+    svg.querySelectorAll("path[stroke]:not([stroke-dasharray])").forEach((el, i) => {
+      const len = el.getTotalLength ? el.getTotalLength() : 0; if (!len) return;
+      el.style.strokeDasharray = `${len} ${len}`;
+      el.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 760, delay: delay + 120 + Math.min(i, 14) * 55, easing: "cubic-bezier(.65,0,.35,1)", fill: "backwards" })
+        .onfinish = () => { el.style.strokeDasharray = ""; };
+    });
+  };
+
   // ---------- Hero ----------
   let heroTimer, heroIdx = 0, heroPool = [];
   const renderHero = () => {
@@ -246,7 +263,7 @@
     if (x.ai) stats.push(`<span><b>${x.ai}</b>AI ${x.ai > 1 ? "employees" : "employee"}</span>`);
     const oldArt = $("#hero .hero__art");
     $("#hero").innerHTML = `
-      <div class="hero__art is-entering">${art(p, "art--hero", false)}</div>
+      <div class="hero__art is-entering">${art(p, "art--hero", false, true)}</div>
       <div class="hero__sheen"></div>
       <div class="hero__content">
         ${current.startsWith("unit:") ? crumbs(trailFor(current)) : ""}
@@ -266,6 +283,7 @@
     const newArt = $("#hero .hero__art");
     if (oldArt && !REDUCED.matches) { oldArt.classList.remove("is-entering"); $("#hero").insertBefore(oldArt, newArt); setTimeout(() => oldArt.remove(), 750); }
     requestAnimationFrame(() => requestAnimationFrame(() => { newArt.classList.remove("is-entering"); $("#hero .hero__sheen").classList.add("is-on"); }));
+    animateScene(newArt.querySelector(".art__scene"), 150);
   };
   const startHero = pool => {
     heroPool = pool.slice(0, 5); heroIdx = 0; renderHero();
@@ -395,7 +413,7 @@
     const el = document.createElement("div");
     el.className = "pv"; el.dataset.open = p.id; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", p.title);
     el.style.cssText = `left:${left + scrollX}px;top:${top + scrollY}px;width:${w}px;transform-origin:${box.left + box.width / 2 - left}px ${box.top + box.height / 2 - top}px`;
-    el.innerHTML = `<div class="pv__art">${art(p)}</div>
+    el.innerHTML = `<div class="pv__art">${art(p, "", true, true)}</div>
       <div class="pv__body">
         <div class="pv__btns">
           <button class="cbtn cbtn--play" data-open="${p.id}" aria-label="Open ${esc(p.title)}">${ICON.play}</button>
@@ -409,6 +427,7 @@
     el.addEventListener("mouseleave", e => { if (!(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(`[data-card="${p.id}"]`))) hidePreview(); });
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add("is-in"));
+    animateScene(el.querySelector(".art__scene"), 120);
     cardEl.classList.add("is-previewing");
     pvEl = el; pvCard = cardEl;
   };
@@ -461,7 +480,7 @@
     const similar = D.projects.filter(x => x.id !== p.id && x.category === p.category).sort(byWeight).slice(0, 6);
     const gain = gainText(p);
     $("#modalBody").innerHTML = `
-      <div class="m-art">${art(p)}</div>
+      <div class="m-art">${art(p, "", true, true)}</div>
       <div class="m-body">
         ${crumbs([{ label: "Home", go: "all" }, { label: cat(p).name, go: `cat:${p.category}` }, { label: p.title }])}
         <div class="m-actions">
@@ -557,6 +576,7 @@
     const wasOpen = !$("#modal").hidden;
     $("#modal").hidden = false; document.body.style.overflow = "hidden"; $("#modal").scrollTop = 0;
     const card = $(".modal__card"); card.style.animation = ""; card.style.transformOrigin = "";
+    animateScene($("#modalBody .m-art .art__scene"), wasOpen ? 0 : 220);
     if (!wasOpen) expand(); else { expandFrom = null; card.animate([{ opacity: .4 }, { opacity: 1 }], { duration: 220, easing: "ease-out" }); }
     $(".modal__close").focus({ preventScroll: true });
   };
@@ -588,9 +608,9 @@
   };
   const pickProfile = (pid, intro = true) => {
     const pr = setProfile(pid);
-    go({ view: pr.view || "all", profile: pr.id });
-    if (!intro || !window.DevaIntro) return;
-    window.DevaIntro.play({ onDone: () => { const a = $("#app"); a.classList.add("is-arriving"); setTimeout(() => a.classList.remove("is-arriving"), 950); } });
+    const enter = () => go({ view: pr.view || "all", profile: pr.id });
+    if (!intro || !window.DevaIntro) return enter();
+    window.DevaIntro.play({ prepare: enter, onDone: () => { const a = $("#app"); a.classList.add("is-arriving"); setTimeout(() => a.classList.remove("is-arriving"), 950); } });
   };
   const syncSound = () => { const on = !window.DevaIntro || window.DevaIntro.soundOn(); $("#soundBtn").setAttribute("aria-pressed", String(on)); $("#soundBtn span").textContent = on ? "Sound on" : "Sound off"; };
   syncSound();
