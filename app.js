@@ -244,8 +244,10 @@
     if (c && c.hours) stats.push(`<span class="is-hot"><b>${k(c.hours)}</b>${c.once ? "hrs saved" : c.basis === "projected" ? "hrs / yr projected" : "hrs / yr"}</span>`, `<span><b>≈${fte(c.fte)}</b>FTE</span>`);
     if (c && c.eff) stats.push(`<span><b>${Math.round(c.eff * 100)}%</b>less effort</span>`);
     if (x.ai) stats.push(`<span><b>${x.ai}</b>AI ${x.ai > 1 ? "employees" : "employee"}</span>`);
+    const oldArt = $("#hero .hero__art");
     $("#hero").innerHTML = `
-      <div class="hero__art">${art(p, "art--hero", false)}</div>
+      <div class="hero__art is-entering">${art(p, "art--hero", false)}</div>
+      <div class="hero__sheen"></div>
       <div class="hero__content">
         ${current.startsWith("unit:") ? crumbs(trailFor(current)) : ""}
         <div class="hero__kicker"><b>D</b> ${esc(cat(p).name)} · ${esc(p.unit || "GTM")}</div>
@@ -260,6 +262,10 @@
       </div>
       ${heroPool.length > 1 ? `<div class="hero__dots">${heroPool.map((h, i) => `<button data-hero="${i}" class="${i === heroIdx % heroPool.length ? "is-on" : ""}" aria-label="Show ${esc(h.title)}"></button>`).join("")}</div>` : ""}
       <div class="hero__rating">${esc(p.status)}</div>`;
+    // the outgoing slide stays underneath while the new one fades in over it
+    const newArt = $("#hero .hero__art");
+    if (oldArt && !REDUCED.matches) { oldArt.classList.remove("is-entering"); $("#hero").insertBefore(oldArt, newArt); setTimeout(() => oldArt.remove(), 750); }
+    requestAnimationFrame(() => requestAnimationFrame(() => { newArt.classList.remove("is-entering"); $("#hero .hero__sheen").classList.add("is-on"); }));
   };
   const startHero = pool => {
     heroPool = pool.slice(0, 5); heroIdx = 0; renderHero();
@@ -318,6 +324,7 @@
     </section>`;
 
   const render = (id = current) => {
+    if (id !== current) { const r = $("#rows"); r.classList.remove("is-swapping"); void r.offsetWidth; r.classList.add("is-swapping"); }
     current = id;
     hidePreview();
     renderNav();
@@ -505,14 +512,57 @@
     showModal();
   };
 
+  // ---------- Card → title expand ----------
+  let expandFrom = null, foldTo = null, closing = null;
+  const originFor = el => {
+    if (el.closest(".modal") || el.closest(".ledger")) return null;
+    const pv = el.closest(".pv");
+    if (pv) return { rect: pv.querySelector(".pv__art").getBoundingClientRect(), back: pvCard && pvCard.querySelector(".card__art") };
+    const c = el.closest("[data-card]");
+    if (c) { const a = c.querySelector(".card__art"); return { rect: a.getBoundingClientRect(), back: a }; }
+    if (el.closest("#hero")) { const a = [...document.querySelectorAll("#hero .hero__art")].pop(); return a ? { rect: a.getBoundingClientRect(), back: null } : null; }
+    return null;
+  };
+  // transform that puts the sheet's artwork exactly over rect r
+  const flip = r => {
+    const card = $(".modal__card"), to = card.getBoundingClientRect(), artH = $(".m-art") ? $(".m-art").getBoundingClientRect().height : to.height;
+    const s = r.width / to.width;
+    return { tf: `translate(${r.left - to.left}px, ${r.top - to.top}px) scale(${s}, ${r.height / artH})`, clip: `inset(0 0 ${Math.max(0, to.height - artH)}px 0 round 10px)` };
+  };
+  const expand = () => {
+    const o = expandFrom; expandFrom = null; foldTo = o && o.back;
+    if (!o || REDUCED.matches || !$(".m-art")) return;
+    const card = $(".modal__card"), f = flip(o.rect);
+    card.style.animation = "none"; card.style.transformOrigin = "0 0";
+    card.animate([{ transform: f.tf, clipPath: f.clip }, { transform: "none", clipPath: "inset(0 0 0 0 round 8px)" }], { duration: 420, easing: "cubic-bezier(.32,.72,0,1)" });
+    $(".modal__backdrop").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+    $("#modalBody .m-body").animate([{ opacity: 0 }, { opacity: 0, offset: .45 }, { opacity: 1 }], { duration: 420, easing: "ease-out" });
+  };
+  const fold = done => {
+    const el = foldTo; foldTo = null;
+    const r = el && document.contains(el) && el.getBoundingClientRect();
+    const onScreen = r && r.width && r.bottom > 0 && r.top < innerHeight && $("#modal").scrollTop < 40;
+    const card = $(".modal__card");
+    if (REDUCED.matches || !card) return done();
+    const anim = onScreen && $(".m-art")
+      ? card.animate([{ transform: "none", clipPath: "inset(0 0 0 0 round 8px)" }, { transform: flip(r).tf, clipPath: flip(r).clip, opacity: .6 }], { duration: 260, easing: "cubic-bezier(.4,0,.2,1)" })
+      : card.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.96)" }], { duration: 160, easing: "ease-in" });
+    $(".modal__backdrop").animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: "ease-in", fill: "forwards" });
+    closing = anim; anim.onfinish = () => { if (closing === anim) { closing = null; done(); } };
+  };
+
   const showModal = () => {
+    if (closing) { closing.cancel(); closing = null; $(".modal__backdrop").getAnimations().forEach(a => a.cancel()); }
     if ($("#modal").hidden) lastFocus = document.activeElement;
+    const wasOpen = !$("#modal").hidden;
     $("#modal").hidden = false; document.body.style.overflow = "hidden"; $("#modal").scrollTop = 0;
+    const card = $(".modal__card"); card.style.animation = ""; card.style.transformOrigin = "";
+    if (!wasOpen) expand(); else { expandFrom = null; card.animate([{ opacity: .4 }, { opacity: 1 }], { duration: 220, easing: "ease-out" }); }
     $(".modal__close").focus({ preventScroll: true });
   };
   const closeModal = () => {
-    if ($("#modal").hidden) return;
-    $("#modal").hidden = true; document.body.style.overflow = "";
+    if ($("#modal").hidden || closing) return;
+    fold(() => { $("#modal").hidden = true; document.body.style.overflow = ""; $(".modal__backdrop").getAnimations().forEach(a => a.cancel()); syncTop(); });
     if (lastFocus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true });
   };
   const openStill = (src, cap) => { $("#lightbox").innerHTML = `<figure><img src="${esc(src)}" alt="${esc(cap)}"><figcaption>${esc(cap)}</figcaption></figure>`; $("#lightbox").hidden = false; };
@@ -536,7 +586,14 @@
     try { sessionStorage.setItem("devaflix:profile", pr.id); } catch {}
     return pr;
   };
-  const pickProfile = pid => { const pr = setProfile(pid); go({ view: pr.view || "all", profile: pr.id }); };
+  const pickProfile = (pid, intro = true) => {
+    const pr = setProfile(pid);
+    go({ view: pr.view || "all", profile: pr.id });
+    if (!intro || !window.DevaIntro) return;
+    window.DevaIntro.play({ onDone: () => { const a = $("#app"); a.classList.add("is-arriving"); setTimeout(() => a.classList.remove("is-arriving"), 950); } });
+  };
+  const syncSound = () => { const on = !window.DevaIntro || window.DevaIntro.soundOn(); $("#soundBtn").setAttribute("aria-pressed", String(on)); $("#soundBtn span").textContent = on ? "Sound on" : "Sound off"; };
+  syncSound();
   $("#profiles").innerHTML = D.profiles.map(p => `
     <button class="profile" data-profile="${p.id}">
       <span class="profile__img" style="background:${p.color}">${face(p)}</span>
@@ -557,7 +614,8 @@
     if (!t.closest("#menu")) closeMenu();
     const list = t.closest("[data-list]");
     if (list) { e.stopPropagation(); toggleList(list.dataset.list); if (current === "list" && $("#modal").hidden) render(); return; }
-    const pf = t.closest("[data-profile]"); if (pf) return pickProfile(pf.dataset.profile);
+    if (t.closest("#soundBtn")) { window.DevaIntro && window.DevaIntro.setSound(!window.DevaIntro.soundOn()); return syncSound(); }
+    const pf = t.closest("[data-profile]"); if (pf) return pickProfile(pf.dataset.profile, !pf.classList.contains("gate__skip"));
     const f = t.closest("[data-filter]"); if (f) { e.preventDefault(); closeMenu(); return goView(f.dataset.filter); }
     const sc = t.closest("[data-scroll]"); if (sc) { const tr = sc.parentElement.querySelector(".row__track"); tr.scrollBy({ left: +sc.dataset.scroll * tr.clientWidth * .85, behavior: "smooth" }); return; }
     const hd = t.closest("[data-hero]"); if (hd) { heroIdx = +hd.dataset.hero; renderHero(); return; }
@@ -565,7 +623,7 @@
     if (t.closest("[data-ledger]")) return goModal("impact");
     if (t.closest("[data-close]")) return closeTop();
     const jp = t.closest("[data-jump]"); if (jp) { const el = document.getElementById(jp.dataset.jump); el && el.scrollIntoView({ behavior: "smooth" }); return; }
-    const op = t.closest("[data-open]"); if (op) return goModal(op.dataset.open);
+    const op = t.closest("[data-open]"); if (op) { expandFrom = originFor(op); return goModal(op.dataset.open); }
     if (t.closest("#profileBtn")) go({ gate: true });
   });
   document.addEventListener("keydown", e => {

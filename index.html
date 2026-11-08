@@ -18,7 +18,11 @@
     <h1 class="gate__title">Who's watching?</h1>
     <div id="profiles" class="profiles"></div>
     <button class="gate__skip" data-profile="all">Skip intro →</button>
+    <button class="gate__sound" id="soundBtn" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="on" d="M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4ZM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6Z"/><path class="off" d="M3 9v6h4l5 5V4L7 9H3Zm13.6 3 2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4-2.7-2.7Z"/></svg><span>Sound on</span></button>
   </section>
+
+  <!-- Profile-enter intro -->
+  <div id="intro" class="intro" hidden aria-hidden="true"><div class="intro__stage"><div class="intro__beams"></div><span class="intro__d">D</span></div></div>
 
   <!-- App -->
   <div id="app" class="app" hidden>
@@ -60,6 +64,7 @@
   <script src="projects.js"></script>
   <script src="impact.js"></script>
   <script src="avatars.js"></script>
+  <script src="intro.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

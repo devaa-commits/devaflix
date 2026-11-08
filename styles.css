@@ -452,3 +452,72 @@ details.how ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 @media (max-width: 760px) {
   .nav__links > button { min-height: 36px; padding: 0 14px; }
 }
+
+/* =========================================================
+   Profile-enter intro
+   ========================================================= */
+.gate__sound { position: absolute; top: 30px; right: var(--gutter); display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; color: var(--muted); font-size: 13px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); transition: color .15s ease, border-color .15s ease; }
+.gate__sound svg { width: 18px; height: 18px; fill: currentColor; }
+.gate__sound .off, .gate__sound[aria-pressed="false"] .on { display: none; }
+.gate__sound[aria-pressed="false"] .off { display: inline; }
+@media (hover: hover) and (pointer: fine) { .gate__sound:hover { color: #fff; border-color: rgba(255,255,255,.5); } }
+
+.intro { position: fixed; inset: 0; z-index: 300; background: #000; display: grid; place-items: center; overflow: hidden; cursor: pointer; }
+.intro.is-out { animation: intro-out .6s ease-out forwards; }
+.intro__stage { position: relative; display: grid; place-items: center; }
+.intro__d { position: relative; font-family: var(--display); font-size: min(46vh, 60vw); line-height: .8; color: var(--red); transform: scale(.82); opacity: 0;
+  text-shadow: 0 0 0 rgba(229,9,20,0); }
+.intro.is-on .intro__d { animation: intro-d 2.2s cubic-bezier(.5, 0, .2, 1) forwards; }
+.intro__beams { position: absolute; left: 50%; top: 50%; width: 0; height: min(60vh, 80vw); transform: translate(-50%, -50%); }
+.intro__beams i { position: absolute; left: var(--x); top: 0; width: var(--w); height: 100%; background: linear-gradient(180deg, transparent, var(--c) 18%, var(--c) 82%, transparent); box-shadow: 0 0 12px var(--c); opacity: 0; transform: scaleY(0); transform-origin: 50% 50%; }
+.intro.is-on .intro__beams i { animation: intro-beam 1.3s cubic-bezier(.23, 1, .32, 1) forwards; animation-delay: calc(.7s + var(--d)); }
+@keyframes intro-d {
+  0% { opacity: 0; transform: scale(.82); text-shadow: 0 0 0 rgba(229,9,20,0); }
+  14% { opacity: 1; }
+  42% { transform: scale(1); text-shadow: 0 0 60px rgba(229,9,20,.55), 0 0 140px rgba(229,9,20,.25); }
+  58% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(9) translateX(6%); opacity: 0; text-shadow: 0 0 80px rgba(229,9,20,.9); }
+}
+@keyframes intro-beam {
+  0% { opacity: 0; transform: scaleY(0) translateX(0); }
+  30% { opacity: 1; transform: scaleY(1) translateX(0); }
+  100% { opacity: 0; transform: scaleY(3.2) translateX(calc(var(--x) * 6)); }
+}
+@keyframes intro-out { from { background: #000; } to { opacity: 0; visibility: hidden; background: transparent; } }
+/* the app settles in as the intro lifts */
+.app.is-arriving .hero { animation: arrive .9s var(--ease) both; }
+@keyframes arrive { from { transform: scale(1.06); filter: brightness(.4); } }
+
+/* =========================================================
+   Hero: crossfading slides, slow drift, glass sheen
+   ========================================================= */
+.hero__art { transition: opacity .7s ease; }
+.hero__art.is-leaving { opacity: 0; z-index: 0; }
+.hero__art.is-entering { opacity: 0; }
+.hero .art--hero .art__scene { animation: drift 11s ease-out both; }
+@keyframes drift { from { transform: scale(1.1) translate(2%, 1%); } }
+.hero__sheen { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.hero__sheen::before { content: ""; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 45%; transform: skewX(-18deg) translateX(0); opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.05) 30%, rgba(255,255,255,.18) 50%, rgba(255,255,255,.05) 70%, transparent); mix-blend-mode: screen; }
+.hero__sheen.is-on::before { animation: sheen 1.8s cubic-bezier(.4, 0, .2, 1) .35s forwards; }
+@keyframes sheen { 0% { opacity: 0; transform: skewX(-18deg) translateX(0); } 15% { opacity: 1; } 100% { opacity: 0; transform: skewX(-18deg) translateX(420%); } }
+
+/* glass controls on the banner */
+.btn--info, .hero__rating, .modal__close, .totop, .gate__sound {
+  background: rgba(255,255,255,.12); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 6px 20px rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.16); }
+.btn--info { color: #fff; }
+.hero__rating { border-left: 3px solid #fff; border-radius: 4px 0 0 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .btn--info:hover, .modal__close:hover { background: rgba(255,255,255,.22); }
+  .totop:hover { background: #fff; color: #000; }
+}
+
+/* page swaps fade in rather than snap */
+.rows.is-swapping { animation: rows-in .32s var(--ease); }
+@keyframes rows-in { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro { display: none !important; }
+  .hero__sheen, .hero .art--hero .art__scene { animation: none !important; }
+}
